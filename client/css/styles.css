@@ -315,6 +315,10 @@ body {
     transform: translateX(-50%);
 }
 
+.pagination-container.hidden {
+    display: none;
+}
+
 .pagination-container:not(.hidden) {
     display: flex !important;
 }

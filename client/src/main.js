@@ -177,7 +177,7 @@ class TaskTracker {
         const currentPage = this.pagination.getCurrentPage();
 
         // Show/hide pagination - hide if no items or only one page
-        if (totalFilteredItems > this.pagination.itemsPerPage && totalFilteredItems > 0) {
+        if (totalPages > 1) {
             DOM.paginationContainer.classList.remove('hidden');
         } else {
             DOM.paginationContainer.classList.add('hidden');
@@ -405,7 +405,7 @@ class TaskTracker {
         if (confirm("Are you sure you want to clear all tasks?")) {
             DOM.taskList.innerHTML = "";
             TaskLocalStorage.clear();
-            this.pagination.reset();
+            this.updatePaginationControls(0);
             this.updateUI();
             this.toast.info("All tasks cleared");
         }

@@ -3,7 +3,7 @@
 class PaginationManager {
     constructor() {
         this.currentPage = 1;
-        this.itemsPerPage = 3;
+        this.itemsPerPage = 4;
     }
 
     setPage(page) {
@@ -15,6 +15,8 @@ class PaginationManager {
     }
 
     getTotalPages(totalItems) {
+        if (totalItems === 0)
+            return 0;
         return Math.ceil(totalItems / this.itemsPerPage) || 1;
     }
 
