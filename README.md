@@ -89,4 +89,4 @@ The Express server provides utility endpoints for the frontend:
 
 ## 📝 License
 
-Distributed under the MIT License. See `package.json` for details.
+Distributed under the MIT License. See the LICENSE file for details.
