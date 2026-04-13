@@ -35,7 +35,9 @@ async function getTaskId() {
         return data.ksuid;
     } catch (error) {// Fallback to UUID
         console.error("Failed to get task ID from server, using fallback:", error);
-        return crypto.randomUUID();
+        return typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : 'task-' + Math.random().toString(36).substring(2, 15);
     }
 }
 
@@ -45,6 +47,7 @@ class TaskTracker {
         this.analytics = new AnalyticsManager();
         this.filter = new FilterManager();
         this.pagination = new PaginationManager();
+        this.tasks = TaskLocalStorage.getAll();
         this.init();
     }
 
@@ -63,7 +66,6 @@ class TaskTracker {
     }
 
     loadExistingTasks() {
-        const tasks = TaskLocalStorage.getAll();
         this.renderAllTasks();
     }
 
@@ -100,7 +102,7 @@ class TaskTracker {
     }
 
     async handleAddTask() {
-        const taskName = Utils.sanitizeHTML(DOM.taskInput.value.trim());
+        const taskName = DOM.taskInput.value.trim();
         const priority = DOM.prioritySelect.value;
 
         if (taskName === "") {
@@ -123,16 +125,20 @@ class TaskTracker {
                 createdAt: new Date().toISOString()
             };
 
-            if (TaskLocalStorage.add(newTask)) {
+            this.tasks.unshift(newTask);
+            if (TaskLocalStorage.setAll(this.tasks)) {
                 DOM.taskInput.value = "";
                 DOM.prioritySelect.value = "medium";
 
-                // Reset to first page when adding new task
-                this.pagination.reset();
+                const currentPage = this.pagination.getCurrentPage();
                 this.renderAllTasks();
                 this.updateUI();
 
-                this.toast.success("Task added successfully!");
+                if (currentPage === 1) {
+                    this.toast.success("Task added successfully!");
+                } else {
+                    this.toast.success("Task added to Page 1 successfully!");
+                }
             }
             TaskSessionStorage.clear();
         } catch (error) {
@@ -142,10 +148,10 @@ class TaskTracker {
 
     renderAllTasks() {
         DOM.taskList.innerHTML = "";
-        const tasks = TaskLocalStorage.getAll();
+        const tasks = this.tasks;
 
         // Get filtered tasks
-        const filteredTasks = this.getFilteredTasks(tasks);
+        const filteredTasks = this.filter.applyFilter(tasks);
 
         // Get paginated tasks
         const paginatedTasks = this.pagination.getPageItems(filteredTasks);
@@ -157,19 +163,6 @@ class TaskTracker {
 
         // Update pagination controls
         this.updatePaginationControls(filteredTasks.length);
-    }
-
-    getFilteredTasks(tasks) {
-        switch (this.filter.currentFilter) {
-            case 'active':
-                return tasks.filter(t => !t.completed);
-            case 'completed':
-                return tasks.filter(t => t.completed);
-            case 'high':
-                return tasks.filter(t => t.priority === 'high');
-            default:
-                return tasks;
-        }
     }
 
     updatePaginationControls(totalFilteredItems) {
@@ -202,8 +195,8 @@ class TaskTracker {
     }
 
     handleNextPage() {
-        const tasks = TaskLocalStorage.getAll();
-        const filteredTasks = this.getFilteredTasks(tasks);
+        const tasks = this.tasks;
+        const filteredTasks = this.filter.applyFilter(tasks);
         const totalPages = this.pagination.getTotalPages(filteredTasks.length);
 
         if (this.pagination.getCurrentPage() < totalPages) {
@@ -296,11 +289,21 @@ class TaskTracker {
     }
 
     handleTaskToggle(taskId, isCompleted) {
-        if (TaskLocalStorage.update(taskId, { completed: isCompleted })) {
-            const taskElement = this.getTaskElement(taskId); // Get the specific task element
-            if (taskElement) {
-                taskElement.classList.toggle("completed", isCompleted); // Toggle the 'completed' class
+        const task = this.tasks.find(t => t.id === taskId);
+        if (task) {
+            task.completed = isCompleted;
+            TaskLocalStorage.setAll(this.tasks);
+            
+            // Check if we need to go back a page
+            const tasks = this.tasks;
+            const filteredTasks = this.filter.applyFilter(tasks);
+            const totalPages = this.pagination.getTotalPages(filteredTasks.length);
+
+            if (this.pagination.getCurrentPage() > totalPages && totalPages > 0) {
+                this.pagination.setPage(totalPages);
             }
+
+            this.renderAllTasks();
             this.updateUI();
             this.toast.success(isCompleted ? "Task completed! 🎉" : "Task reopened");
         }
@@ -312,11 +315,12 @@ class TaskTracker {
 
         taskElement.style.animation = 'toastSlide 0.3s ease reverse';
         setTimeout(() => {
-            TaskLocalStorage.remove(taskId);
+            this.tasks = this.tasks.filter(t => t.id !== taskId);
+            TaskLocalStorage.setAll(this.tasks);
 
             // Check if we need to go back a page
-            const tasks = TaskLocalStorage.getAll();
-            const filteredTasks = this.getFilteredTasks(tasks);
+            const tasks = this.tasks;
+            const filteredTasks = this.filter.applyFilter(tasks);
             const totalPages = this.pagination.getTotalPages(filteredTasks.length);
 
             if (this.pagination.getCurrentPage() > totalPages && totalPages > 0) {
@@ -353,7 +357,7 @@ class TaskTracker {
     }
 
     updateStats() {
-        const tasks = TaskLocalStorage.getAll();
+        const tasks = this.tasks;
         const total = tasks.length;
         const completed = tasks.filter(task => task.completed).length;
         const remaining = total - completed;
@@ -364,8 +368,8 @@ class TaskTracker {
     }
 
     updateEmptyState() {
-        const tasks = TaskLocalStorage.getAll();
-        const filteredTasks = this.getFilteredTasks(tasks);
+        const tasks = this.tasks;
+        const filteredTasks = this.filter.applyFilter(tasks);
         const hasNoTasks = filteredTasks.length === 0;
 
         DOM.emptyState.style.display = hasNoTasks ? "flex" : "none";
@@ -393,7 +397,7 @@ class TaskTracker {
     }
 
     updateAnalytics() {
-        const tasks = TaskLocalStorage.getAll();
+        const tasks = this.tasks;
 
         // Only update if there are tasks
         if (tasks.length > 0) {
@@ -404,7 +408,9 @@ class TaskTracker {
     clearAllTasks() {
         if (confirm("Are you sure you want to clear all tasks?")) {
             DOM.taskList.innerHTML = "";
+            this.tasks = [];
             TaskLocalStorage.clear();
+            this.pagination.reset();
             this.updatePaginationControls(0);
             this.updateUI();
             this.toast.info("All tasks cleared");
@@ -412,7 +418,7 @@ class TaskTracker {
     }
 
     exportTasks() {
-        const tasks = TaskLocalStorage.getAll();
+        const tasks = this.tasks;
 
         if (tasks.length === 0) {
             this.toast.warning("No tasks to export");

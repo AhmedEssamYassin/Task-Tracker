@@ -7,6 +7,7 @@ class AnalyticsManager {
     constructor() {
         this.completionChart = null;
         this.priorityChart = null;
+        this.lastUpdateTime = 0;
         this.initCharts();
     }
 
@@ -85,10 +86,14 @@ class AnalyticsManager {
         const completed = tasks.filter(t => t.completed).length;
         const remaining = tasks.length - completed;
 
+        const now = Date.now();
+        const duration = (now - this.lastUpdateTime > 800) ? 800 : 0;
+        this.lastUpdateTime = now;
+
         // Update completion chart with smooth animation
         this.completionChart.data.datasets[0].data = [completed, remaining];
         this.completionChart.options.animation = {
-            duration: 800,
+            duration: duration,
             easing: 'easeInOutQuart'
         };
         this.completionChart.update();
@@ -100,7 +105,7 @@ class AnalyticsManager {
 
         this.priorityChart.data.datasets[0].data = [high, medium, low];
         this.priorityChart.options.animation = {
-            duration: 800,
+            duration: duration,
             easing: 'easeInOutQuart'
         };
         this.priorityChart.update();

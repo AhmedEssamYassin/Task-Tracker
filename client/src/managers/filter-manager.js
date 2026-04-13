@@ -7,33 +7,23 @@ class FilterManager {
         this.currentFilter = filter;
     }
 
-    shouldShowTask(taskElement) {
-        const isCompleted = taskElement.classList.contains('completed');
-        const priority = taskElement.querySelector('.priority-badge')?.classList[1];
-
+    shouldShowTask(task) {
         switch (this.currentFilter) {
             case 'all':
                 return true;
             case 'active':
-                return !isCompleted;
+                return !task.completed;
             case 'completed':
-                return isCompleted;
+                return task.completed;
             case 'high':
-                return priority === 'high';
+                return task.priority === 'high';
             default:
                 return true;
         }
     }
 
-    applyFilter() {
-        const tasks = document.querySelectorAll('.task-item');
-        tasks.forEach(task => {
-            if (this.shouldShowTask(task)) {
-                task.classList.remove('hidden');
-            } else {
-                task.classList.add('hidden');
-            }
-        });
+    applyFilter(tasks) {
+        return tasks.filter(task => this.shouldShowTask(task));
     }
 }
 export { FilterManager };
