@@ -8,6 +8,8 @@ A robust, feature-rich Todo application featuring a Node.js/Express backend and 
 
 - **Prioritization**: Assign priority levels (High, Medium, Low) to tasks.
 
+- **Fast & Responsive**: Utilizes an in-memory state management pattern synced with local storage for high performance.
+
 - **Smart Persistence**:
   - **Local Storage**: Persists tasks across browser sessions.
   - **Session Storage**: Drafts input text is saved automatically while typing.
@@ -22,7 +24,7 @@ A robust, feature-rich Todo application featuring a Node.js/Express backend and 
 
 - **Unique IDs**: Generates KSUIDs via the backend (with UUID fallback).
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 **Backend**
 - Runtime: Node.js (>=18.0.0)
@@ -79,7 +81,7 @@ npm run dev
 - **Frontend**: Accessible at `http://localhost:5173` (or the port assigned by Vite)
 - **Backend**: Running at `http://localhost:3000`
 
-## 🔌 API Endpoints
+## API Endpoints
 
 The Express server provides utility endpoints for the frontend:
 
@@ -87,6 +89,6 @@ The Express server provides utility endpoints for the frontend:
 |--------|---------------|------------------------------------------------|
 | GET    | `/api/ksuid`  | Returns a unique KSUID for new task creation. |
 
-## 📝 License
+## License
 
-Distributed under the MIT License. See the LICENSE file for details.
+Distributed under the MIT License. See the [LICENSE](LICENSE) file for details.
