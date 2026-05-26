@@ -31,7 +31,9 @@ const DOM = {
 async function getTaskId() {
     try {
         const res = await fetch("/api/ksuid");
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
+        if (!data.ksuid) throw new Error("No ksuid in response");
         return data.ksuid;
     } catch (error) {// Fallback to UUID
         console.error("Failed to get task ID from server, using fallback:", error);
@@ -93,7 +95,7 @@ class TaskTracker {
 
         // Filter tabs
         DOM.filterTabs.forEach(tab => {
-            tab.addEventListener("click", (e) => this.handleFilterChange(e.target));
+            tab.addEventListener("click", (e) => this.handleFilterChange(e.currentTarget));
         });
 
         // Pagination buttons
@@ -139,6 +141,9 @@ class TaskTracker {
                 } else {
                     this.toast.success("Task added to Page 1 successfully!");
                 }
+            } else {
+                this.tasks.shift();
+                this.toast.error("Failed to save task to local storage.");
             }
             TaskSessionStorage.clear();
         } catch (error) {
@@ -293,7 +298,7 @@ class TaskTracker {
         if (task) {
             task.completed = isCompleted;
             TaskLocalStorage.setAll(this.tasks);
-            
+
             // Check if we need to go back a page
             const tasks = this.tasks;
             const filteredTasks = this.filter.applyFilter(tasks);
@@ -382,6 +387,9 @@ class TaskTracker {
             if (this.filter.currentFilter === 'completed') {
                 svg.innerHTML = '<circle cx="12" cy="12" r="10"></circle><path d="M16 16s-1.5-2-4-2-4 2-4 2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line>';
                 text.textContent = 'No completed tasks yet, go on finish some of them';
+            } else if (this.filter.currentFilter === 'active' && tasks.length > 0) {
+                svg.innerHTML = '<circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line>';
+                text.textContent = "You're all caught up on active tasks!";
             } else {
                 svg.innerHTML = '<circle cx="12" cy="12" r="10"></circle><path d="M8 14s1.5 2 4 2 4-2 4-2"></path><line x1="9" y1="9" x2="9.01" y2="9"></line><line x1="15" y1="9" x2="15.01" y2="9"></line>';
                 text.textContent = 'No tasks yet. Add one above!';
