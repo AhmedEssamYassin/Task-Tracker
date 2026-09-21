@@ -38,7 +38,7 @@ A robust, feature-rich Todo application featuring a Node.js/Express backend and 
 - Libraries: Chart.js (Data Visualization)
 
 ## System Design (UML Diagram)
-![UML Diagram](./docs/system%20design%20UML.svg)
+![UML Diagram](./docs/system-design-uml.svg)
 
 ## Getting Started
 
